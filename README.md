@@ -1,38 +1,38 @@
-# ProjectSense AI — Project Planning & Risk Forecasting
+# AI-Powered Project Planning & Risk Forecasting App
 
-An AI-powered project planning application for project managers. Input a project description, deadline, and team capacity — and get a structured task plan, workflow graph, Monte Carlo simulation, and delay risk forecast before your project begins.
+An AI-powered project planning application for project managers. Input a project description, deadline, and team capacity, and get a structured task plan, workflow graph, Monte Carlo simulation, and delay risk forecast before your project begins.
 
 ---
 
 ## Overview
 
-ProjectSense AI moves project management from **reactive** to **predictive**. Instead of discovering risks mid-execution, you surface them upfront using AI-generated task decomposition and probabilistic simulation.
+This app moves project management from **reactive** to **predictive**. Instead of discovering risks mid-execution, you surface them upfront using AI-generated task decomposition and probabilistic simulation.
 
 ---
 
 ## Key Features
 
-- **AI Task Generation** — Groq LLM decomposes your project description into structured tasks with durations, dependencies, and risk scores
-- **Workflow Graph & Critical Path** — NetworkX DAG with automated critical path detection
-- **Monte Carlo Simulation** — 500–5,000 iterations sampling task durations to produce a completion time distribution
-- **Delay Probability & Percentiles** — P50, P80, and percentage likelihood of missing your deadline
-- **Risk Driver Ranking** — Identifies which tasks most frequently appear on the critical path across simulations
-- **Scenario Comparison** — Side-by-side baseline vs. aggressive deadline vs. increased capacity (+15% faster)
-- **Executive Summary** — Human-readable forecast statement ready for stakeholder communication
-- **Editable Task Plan** — Tweak durations and uncertainty estimates before running simulation
+- **AI Task Generation:** Groq LLM decomposes your project description into structured tasks with durations, dependencies, and risk scores
+- **Workflow Graph & Critical Path:** NetworkX DAG with automated critical path detection
+- **Monte Carlo Simulation:** 500–5,000 iterations sampling task durations to produce a completion time distribution
+- **Delay Probability & Percentiles:** P50, P80, and percentage likelihood of missing your deadline
+- **Risk Driver Ranking:** Identifies which tasks most frequently appear on the critical path across simulations
+- **Scenario Comparison:** Side-by-side baseline vs. aggressive deadline vs. increased capacity (+15% faster)
+- **Executive Summary:** Human-readable forecast statement ready for stakeholder communication
+- **Editable Task Plan:** Tweak durations and uncertainty estimates before running simulation
 
 ---
 
 ## How It Works
 
-1. **User Input** — Enter a project description, deadline (days), and simulation parameters in the sidebar
-2. **AI Task Generation** — Groq LLM generates a structured JSON task plan with IDs, dependencies, mean durations, standard deviations, and risk factors
-3. **Graph Construction** — Tasks are built into a directed acyclic graph (DAG); cycles are detected and rejected
-4. **Critical Path** — The longest path through the DAG by mean duration is computed and displayed
-5. **Monte Carlo Simulation** — For each iteration, task durations are sampled from Normal(mean, std_dev); project completion is computed as the sum of durations along the critical path
-6. **Risk Metrics** — Mean, P50, P80, and delay probability are derived from the simulation distribution
-7. **Risk Drivers** — Tasks are ranked by how frequently they appear on the simulated critical path
-8. **Scenario Analysis** — Three scenarios are compared: baseline, tightened deadline (−15%), and boosted capacity (+15% faster)
+1. **User Input:** Enter a project description, deadline (days), and simulation parameters in the sidebar
+2. **AI Task Generation:** Groq LLM generates a structured JSON task plan with IDs, dependencies, mean durations, standard deviations, and risk factors
+3. **Graph Construction:** asks are built into a directed acyclic graph (DAG); cycles are detected and rejected
+4. **Critical Path:** The longest path through the DAG by mean duration is computed and displayed
+5. **Monte Carlo Simulation:** For each iteration, task durations are sampled from Normal(mean, std_dev); project completion is computed as the sum of durations along the critical path
+6. **Risk Metrics:** Mean, P50, P80, and delay probability are derived from the simulation distribution
+7. **Risk Drivers:** asks are ranked by how frequently they appear on the simulated critical path
+8. **Scenario Analysis:** Three scenarios are compared: baseline, tightened deadline (−15%), and boosted capacity (+15% faster)
 
 ---
 
@@ -54,7 +54,7 @@ ProjectSense AI moves project management from **reactive** to **predictive**. In
 ## Project Structure
 
 ```
-project-sense-ai/
+ai-project-planner/
 ├── app.py
 ├── requirements.txt
 ├── .env
