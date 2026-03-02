@@ -14,7 +14,8 @@ Given a project description, it:
 - compares execution scenarios,
 - stores run history and supports export.
 
-It is not a generic chatbot and not a model-training project.
+It is not a generic chatbot.
+The supervised model is used as an advisory signal, while Monte Carlo remains the primary forecasting engine.
 
 ## 2) End-to-End Flow (Mental Model)
 1. User enters project text and simulation settings in Streamlit sidebar (`app.py`).
@@ -26,8 +27,9 @@ It is not a generic chatbot and not a model-training project.
 5. Monte Carlo runs sample durations and recompute critical path each iteration.
 6. Metrics are computed (mean, P50, P80, delay probability).
 7. Delay drivers are ranked by critical-path frequency.
-8. Scenario comparison runs across baseline / aggressive deadline / capacity boost.
-9. Run is stored in SQLite and can be reloaded/exported.
+8. Advisory ML scoring predicts task risk classes from structured task features.
+9. Scenario comparison runs across baseline / aggressive deadline / capacity boost.
+10. Run is stored in SQLite and can be reloaded/exported.
 
 ## 3) Code Map (Where Things Live)
 - UI and orchestration: `app.py`
@@ -46,6 +48,10 @@ It is not a generic chatbot and not a model-training project.
   - metrics: `src/analytics/metrics.py`
   - delay drivers: `src/analytics/risk_drivers.py`
   - scenarios: `src/analytics/scenarios.py`
+- Advisory ML scoring:
+  - feature schema and validation: `src/ml/schema.py`
+  - model loading and status handling: `src/ml/predictor.py`
+  - scoring service: `src/ml/service.py`
 - Charts: `src/visualization/charts.py`
 - Persistence:
   - schema/init: `src/storage/db.py`
@@ -146,14 +152,15 @@ Practical innovation is the integration:
 - LLM plan generation + strict validation,
 - dynamic critical-path Monte Carlo forecasting,
 - delay-driver intelligence,
+- advisory ML risk scoring on top of simulation outputs,
 - scenario-based recommendation in a single stakeholder-facing app.
 
 ## 11) Scope Boundaries (Intentional)
 Included because required for value now:
-- planning, risk forecasting, visualization, persistence, CI, demo-ready workflow.
+- planning, risk forecasting, advisory ML scoring, visualization, persistence, CI, demo-ready workflow.
 
 Deferred to avoid scope creep:
-- training supervised ML models,
+- advanced model tuning and production MLOps workflows,
 - RAG/agent/MCP stack,
 - full cloud infrastructure rollout.
 
@@ -161,5 +168,6 @@ Deferred to avoid scope creep:
 - Can each teammate run the app in `mock` mode end-to-end?
 - Can each teammate explain P50/P80/delay probability in plain language?
 - Can each teammate explain why a task appears as top delay driver?
+- Can each teammate explain how ML advisory scores complement Monte Carlo outputs?
 - Can each teammate reload history and export outputs?
 - Can each teammate run smoke test and describe CI pipeline purpose?

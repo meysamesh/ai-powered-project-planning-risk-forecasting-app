@@ -24,15 +24,20 @@
 - Explain histogram with deadline, P50, P80 markers.
 - Show top delay drivers table/bar.
 
-## 4:00-4:50 - Scenario Lab
+## 4:00-4:40 - ML Risk Scoring (Advisory)
+- Open `ML Risk Scoring`.
+- Show per-task class probabilities.
+- State clearly: \"This is advisory and combined with Monte Carlo outputs, not a standalone commitment engine.\"
+
+## 4:40-5:15 - Scenario Lab
 - Compare baseline, aggressive deadline, increased capacity.
 - Highlight recommended scenario (lowest delay probability).
 
-## 4:50-5:30 - History and Export
+## 5:15-5:50 - History and Export
 - Open `History & Export`.
 - Load a previous run.
 - Download CSV/JSON outputs for stakeholder reporting.
 
-## 5:30-6:30 - Close
+## 5:50-6:30 - Close
 - "This turns planning into a decision-support workflow, not just a static estimate."
 - Mention roadmap: real-time updates, portfolio view, integrations.

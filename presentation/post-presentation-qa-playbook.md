@@ -73,9 +73,9 @@ Evidence: `tests/`, `scripts/smoke_test.py`, `.github/workflows/ci.yml`.
 Short answer: No, we used only what is required for this product to avoid scope creep.
 Evidence: explicit scope policy in `PROJECT_WORKFLOW.md` and `ai-planning-risk-app-02.ipynb`.
 
-## 18) Why not train ML models (regression/KNN/trees/ANN) here?
-Short answer: This product is planning-risk simulation first; model training is not required for current value delivery.
-Evidence: scope decisions in `PROJECT_WORKFLOW.md`.
+## 18) How are you using the trained ML model?
+Short answer: We use a supervised classifier as an advisory signal at task level; Monte Carlo and scenarios remain primary decision engines.
+Evidence: `app.py` (ML Risk Scoring tab), `src/ml/`, `models/risk_classifier.joblib`.
 
 ## 19) Why no RAG/agents/MCP in this version?
 Short answer: Not needed for MVP outcome; omitted intentionally to keep the system reliable and explainable.

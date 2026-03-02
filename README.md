@@ -9,6 +9,7 @@ A stakeholder-ready Streamlit application that generates project plans with Groq
 - Dynamic critical-path Monte Carlo simulation (per-iteration path recomputation)
 - Risk metrics: Mean, P50, P80, delay probability
 - Delay-driver ranking from simulated critical-path frequency
+- Advisory ML risk classification from a trained construction-task model
 - Scenario lab: baseline vs aggressive deadline vs increased capacity
 - SQLite session history with reload and export
 - Stakeholder-friendly UI with executive summary and downloadable outputs
@@ -21,6 +22,7 @@ A stakeholder-ready Streamlit application that generates project plans with Groq
 - `NumPy` + `Pandas` for simulation and analytics
 - `Plotly` for interactive charts
 - `SQLite` for lightweight run persistence
+- `scikit-learn` + `joblib` for advisory model inference
 
 ## Repository Structure
 ```
@@ -36,14 +38,18 @@ ai-powered-project-planning-risk-forecasting-app/
 ├── Dockerfile
 ├── docker-compose.yml
 ├── scripts/
-│   └── smoke_test.py
+│   ├── smoke_test.py
+│   └── train_risk_model.py
 ├── tests/
 │   ├── test_schema.py
 │   ├── test_graph_builder.py
 │   ├── test_simulation.py
 │   ├── test_metrics.py
 │   ├── test_scenarios_and_drivers.py
-│   └── test_integration_generation.py
+│   ├── test_integration_generation.py
+│   ├── test_ml_predictor.py
+│   ├── test_ml_service.py
+│   └── test_storage_ml_predictions.py
 ├── presentation/
 │   ├── stakeholder-deck.md
 │   ├── demo-script.md
@@ -56,6 +62,7 @@ ai-powered-project-planning-risk-forecasting-app/
     ├── simulation/
     ├── analytics/
     ├── visualization/
+    ├── ml/
     ├── storage/
     └── utils/
 ```
@@ -115,6 +122,7 @@ Use `.env` (or deployment secrets):
 ```
 GROQ_API_KEY=
 APP_MODE=mock
+DEMO_DEFAULT_MODE=mock
 GROQ_MODEL=llama-3.3-70b-versatile
 DEFAULT_ITERATIONS=1000
 MAX_ITERATIONS=2000
@@ -123,20 +131,27 @@ MIN_DURATION=0.1
 GROQ_TIMEOUT_SECONDS=30
 GROQ_MAX_RETRIES=2
 SQLITE_DB_PATH=data/app.db
+RISK_MODEL_ENABLED=true
+RISK_MODEL_PATH=models/risk_classifier.joblib
+RISK_MODEL_METRICS_PATH=models/risk_model_metrics.json
+RISK_MODEL_VERSION=v0-advisory
 ```
 
 Notes:
 - `APP_MODE=mock` is best for UI development and fallback demos.
 - `APP_MODE=real` requires `GROQ_API_KEY`.
+- `DEMO_DEFAULT_MODE=mock` keeps live stakeholder demos resilient.
+- ML scoring is advisory and should be interpreted alongside Monte Carlo outputs.
 
 ## UI Walkthrough
-The final UI is organized into 6 tabs:
+The final UI is organized into 7 tabs:
 1. `Executive Brief` (risk badge, KPI cards, summary)
 2. `Task Plan` (editable plan table + recompute)
 3. `Workflow` (dependency graph + critical path)
 4. `Risk Dashboard` (Monte Carlo histogram + top delay drivers)
-5. `Scenario Lab` (decision comparison across scenarios)
-6. `History & Export` (SQLite history, reload, CSV/JSON export)
+5. `ML Risk Scoring` (advisory classification + class probabilities)
+6. `Scenario Lab` (decision comparison across scenarios)
+7. `History & Export` (SQLite history, reload, CSV/JSON export)
 
 ## Testing
 Install dev dependencies and run tests:
@@ -148,6 +163,15 @@ pytest -q
 Run smoke test before demos:
 ```bash
 python scripts/smoke_test.py
+```
+
+Train/update model artifacts:
+```bash
+python scripts/train_risk_model.py \
+  --dataset data/construction_dataset.csv \
+  --model-out models/risk_classifier.joblib \
+  --metrics-out models/risk_model_metrics.json \
+  --model-version v0-advisory
 ```
 
 ## Deployment
@@ -178,6 +202,7 @@ Use the materials in `presentation/`:
 - `backup-demo.md` (mock-mode contingency)
 - `powerpoint-ready-deck.md` (12-slide, PowerPoint-ready structure)
 - `post-presentation-qa-playbook.md` (rapid Q&A answer sheet)
+- `stakeholder-evidence-pack.md` (proof bundle for deployment, testing, and limits)
 
 ## Team Workflow Asset
 - `PROJECT_WORKFLOW.md` includes:
@@ -185,6 +210,8 @@ Use the materials in `presentation/`:
   - scope discipline (only required topics)
   - DoR / DoD
   - ownership and readiness checklist
+- `RELEASE_CHECKLIST.md` provides the demo-production gate checklist.
+- `ARCHITECTURE_SNAPSHOT.md` provides a one-page architecture reference.
 
 ## Internal Understanding Asset
 - `PROJECT_UNDERSTANDING_GUIDE.md`:

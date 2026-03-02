@@ -11,7 +11,14 @@ from src.storage.db import get_connection
 
 
 def _to_json(payload: Any) -> str:
-    return json.dumps(payload, ensure_ascii=True)
+    def _default(value: Any) -> Any:
+        if isinstance(value, np.generic):
+            return value.item()
+        if isinstance(value, np.ndarray):
+            return value.tolist()
+        raise TypeError(f"Object of type {type(value).__name__} is not JSON serializable")
+
+    return json.dumps(payload, ensure_ascii=True, default=_default)
 
 
 def _from_json(payload: str | None, fallback: Any) -> Any:
@@ -34,6 +41,10 @@ def save_session_run(
     metrics: dict[str, Any],
     completion_times: np.ndarray,
     scenarios_df: pd.DataFrame,
+    ml_features_df: pd.DataFrame | None = None,
+    ml_predictions_df: pd.DataFrame | None = None,
+    model_version: str | None = None,
+    db_path: str | None = None,
 ) -> int:
     """Persist one project planning and simulation run."""
     completion_summary = {
@@ -46,7 +57,7 @@ def save_session_run(
         "p80": float(np.percentile(completion_times, 80)) if completion_times.size else 0.0,
     }
 
-    with get_connection() as connection:
+    with get_connection(db_path) as connection:
         cursor = connection.execute(
             """
             INSERT INTO projects (project_text, mode, params_json)
@@ -97,11 +108,33 @@ def save_session_run(
                 (simulation_run_id, scenario_name, _to_json(row)),
             )
 
+        if ml_features_df is not None and ml_predictions_df is not None:
+            features_payload = ml_features_df.to_dict(orient="records")
+            predictions_payload = ml_predictions_df.to_dict(orient="records")
+            if features_payload and predictions_payload:
+                connection.execute(
+                    """
+                    INSERT INTO ml_predictions (
+                        simulation_run_id,
+                        model_version,
+                        features_json,
+                        predictions_json
+                    )
+                    VALUES (?, ?, ?, ?)
+                    """,
+                    (
+                        simulation_run_id,
+                        model_version or "unspecified",
+                        _to_json(features_payload),
+                        _to_json(predictions_payload),
+                    ),
+                )
+
         connection.commit()
         return simulation_run_id
 
 
-def list_recent_runs(limit: int = 20) -> list[dict[str, Any]]:
+def list_recent_runs(limit: int = 20, db_path: str | None = None) -> list[dict[str, Any]]:
     query = """
         SELECT
             s.id AS simulation_run_id,
@@ -118,7 +151,7 @@ def list_recent_runs(limit: int = 20) -> list[dict[str, Any]]:
         LIMIT ?
     """
 
-    with get_connection() as connection:
+    with get_connection(db_path) as connection:
         rows = connection.execute(query, (int(limit),)).fetchall()
 
     results: list[dict[str, Any]] = []
@@ -141,8 +174,8 @@ def list_recent_runs(limit: int = 20) -> list[dict[str, Any]]:
     return results
 
 
-def get_run_details(simulation_run_id: int) -> dict[str, Any] | None:
-    with get_connection() as connection:
+def get_run_details(simulation_run_id: int, db_path: str | None = None) -> dict[str, Any] | None:
+    with get_connection(db_path) as connection:
         run_row = connection.execute(
             """
             SELECT
@@ -188,8 +221,27 @@ def get_run_details(simulation_run_id: int) -> dict[str, Any] | None:
             (int(simulation_run_id),),
         ).fetchall()
 
+        ml_row = connection.execute(
+            """
+            SELECT model_version, features_json, predictions_json, created_at
+            FROM ml_predictions
+            WHERE simulation_run_id = ?
+            ORDER BY id DESC
+            LIMIT 1
+            """,
+            (int(simulation_run_id),),
+        ).fetchone()
+
     tasks = _from_json(plan_row["tasks_json"], []) if plan_row is not None else []
     scenarios = [_from_json(row["metrics_json"], {}) for row in scenario_rows]
+    ml_predictions = None
+    if ml_row is not None:
+        ml_predictions = {
+            "model_version": str(ml_row["model_version"]),
+            "features": _from_json(ml_row["features_json"], []),
+            "predictions": _from_json(ml_row["predictions_json"], []),
+            "created_at": str(ml_row["created_at"]),
+        }
 
     return {
         "simulation_run_id": int(run_row["simulation_run_id"]),
@@ -205,4 +257,5 @@ def get_run_details(simulation_run_id: int) -> dict[str, Any] | None:
         "completion_summary": _from_json(run_row["completion_summary_json"], {}),
         "tasks": tasks,
         "scenarios": scenarios,
+        "ml_predictions": ml_predictions,
     }

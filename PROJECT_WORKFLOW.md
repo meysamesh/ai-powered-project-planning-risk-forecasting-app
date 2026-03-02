@@ -13,6 +13,7 @@ This capstone intentionally uses only topics needed for this product:
 - AI architecture basics (input -> LLM -> validation -> simulation -> UI)
 - Applied LLM prompt engineering (task generation)
 - Risk forecasting analytics (Monte Carlo + percentiles + delay probability)
+- Advisory ML scoring (task-level classifier inference)
 - Data visualization (Plotly, Streamlit)
 - SQL basics through SQLite persistence
 - Docker (reproducible local run)
@@ -20,7 +21,7 @@ This capstone intentionally uses only topics needed for this product:
 - PM practices: stakeholder framing, OKRs/KPIs, roadmap, prioritization, DoR/DoD
 
 Out of scope for this capstone (not required for this use case right now):
-- Training supervised models (linear/logistic regression, KNN, decision trees, ANN)
+- Advanced model tuning and enterprise-grade MLOps rollout
 - RAG/agents/MCP integration
 - GCP deployment
 - A/B testing in production

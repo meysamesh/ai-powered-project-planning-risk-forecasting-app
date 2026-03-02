@@ -8,3 +8,7 @@ class GraphValidationError(RuntimeError):
 
 class StorageError(RuntimeError):
     """Raised when persistence operations fail."""
+
+
+class ModelInferenceError(RuntimeError):
+    """Raised when ML advisory scoring cannot be performed."""
