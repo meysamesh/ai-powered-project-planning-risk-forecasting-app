@@ -36,7 +36,7 @@ logging.basicConfig(
 )
 logger = logging.getLogger("projectsense.app")
 
-st.set_page_config(page_title="ProjectSense AI", layout="wide")
+st.set_page_config(page_title="AI Powered Planning & Risk Forecasting App", layout="wide")
 
 
 @st.cache_resource
@@ -358,7 +358,7 @@ except Exception as exc:  # noqa: BLE001
 st.markdown(
     """
     <div class="hero-wrap">
-      <div class="hero-title">ProjectSense AI</div>
+      <div class="hero-title">AI Powered Project Planning & Risk Forecasting App</div>
       <p class="hero-subtitle">
         AI-assisted project planning with workflow reasoning, Monte Carlo risk forecasting,
         and scenario decision support.
