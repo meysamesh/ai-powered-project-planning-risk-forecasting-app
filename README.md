@@ -60,7 +60,28 @@ ai-powered-project-planning-risk-forecasting-app/
     └── utils/
 ```
 
-## Setup
+## Environment Setup
+
+**`macOS` / `Linux`**
+```bash
+# Set up Python environment
+pyenv local 3.11.3
+python -m venv .venv
+source .venv/bin/activate
+pip install --upgrade pip
+pip install -r requirements.txt
+```
+
+**`Windows` (PowerShell)**
+```powershell
+# Set up Python environment
+pyenv local 3.11.3
+python -m venv .venv
+.venv\Scripts\Activate.ps1
+python -m pip install --upgrade pip
+pip install -r requirements.txt
+```
+
 1. Create and activate the environment:
    ```bash
    python -m venv .venv
