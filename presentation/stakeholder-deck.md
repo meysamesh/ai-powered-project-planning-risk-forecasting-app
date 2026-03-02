@@ -20,14 +20,16 @@ ProjectSense AI generates structured plans, models dependencies, simulates uncer
 3. Validation and DAG construction
 4. Monte Carlo simulation with dynamic critical path
 5. Metrics and risk-driver extraction
-6. Scenario comparison and decision recommendation
+6. Advisory ML risk scoring per task
+7. Scenario comparison and decision recommendation
 
 ## Slide 5 - Core UI Walkthrough
-Demo the 6 tabs:
+Demo the 7 tabs:
 - Executive Brief
 - Task Plan
 - Workflow
 - Risk Dashboard
+- ML Risk Scoring
 - Scenario Lab
 - History & Export
 
@@ -52,6 +54,7 @@ Value:
 
 Current limits:
 - LLM plan quality depends on prompt input
+- ML classifier is advisory and not the sole decision engine
 - Uses lightweight persistence and no multi-user auth in this version
 
 ## Slide 10 - Roadmap

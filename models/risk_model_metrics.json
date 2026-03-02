@@ -1,0 +1,45 @@
+{
+  "dataset_path": "/Users/santiagomolina/Documents/Neue Fische Capstone Project/construction_dataset.csv",
+  "n_rows": 1300,
+  "n_features": 8,
+  "baseline_accuracy": 0.5076923076923077,
+  "baseline_macro_f1": 0.22448979591836735,
+  "final_accuracy": 0.4346153846153846,
+  "final_macro_f1": 0.2642565131529478,
+  "cv_macro_f1_mean": 0.2736531192462427,
+  "cv_macro_f1_std": 0.0039196289751317085,
+  "feature_importance": [
+    {
+      "feature": "Material_Cost_USD",
+      "importance": 0.16294748187108463
+    },
+    {
+      "feature": "Resource_Constraint_Score",
+      "importance": 0.1464224069478988
+    },
+    {
+      "feature": "Site_Constraint_Score",
+      "importance": 0.14313750214392298
+    },
+    {
+      "feature": "Task_Duration_Days",
+      "importance": 0.14208139268188058
+    },
+    {
+      "feature": "Start_Constraint",
+      "importance": 0.12917545378036152
+    },
+    {
+      "feature": "Labor_Required",
+      "importance": 0.11796866815334568
+    },
+    {
+      "feature": "Equipment_Units",
+      "importance": 0.09018419683949551
+    },
+    {
+      "feature": "Dependency_Count",
+      "importance": 0.0680828975820104
+    }
+  ]
+}

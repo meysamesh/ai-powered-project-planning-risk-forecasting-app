@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import json
 import logging
+from dataclasses import asdict
+from pathlib import Path
 from typing import Any
 
 import pandas as pd
@@ -13,6 +15,8 @@ from src.analytics.metrics import compute_metrics
 from src.analytics.risk_drivers import rank_delay_drivers
 from src.analytics.scenarios import scenario_comparison
 from src.config import settings
+from src.ml.predictor import RiskModelStatus, load_risk_model
+from src.ml.service import build_default_feature_df, score_tasks, summarize_predictions
 from src.modeling.critical_path import critical_path_by_mean
 from src.modeling.graph_builder import build_project_graph
 from src.simulation.monte_carlo import run_monte_carlo
@@ -32,7 +36,7 @@ logging.basicConfig(
 )
 logger = logging.getLogger("projectsense.app")
 
-st.set_page_config(page_title="ProjectSense AI", layout="wide")
+st.set_page_config(page_title="AI Powered Planning & Risk Forecasting App", layout="wide")
 
 
 @st.cache_resource
@@ -41,9 +45,23 @@ def _initialize_database() -> bool:
     return True
 
 
+@st.cache_resource
+def _load_risk_model_bundle() -> tuple[Any | None, RiskModelStatus]:
+    model_path = settings.risk_model_path_file
+    if not model_path.is_absolute():
+        model_path = Path.cwd() / model_path
+
+    model, status = load_risk_model(
+        enabled=settings.risk_model_enabled,
+        model_path=model_path,
+        model_version=settings.risk_model_version,
+    )
+    return model, status
+
+
 def _init_session_state() -> None:
     defaults = {
-        "mode": settings.app_mode,
+        "mode": settings.demo_default_mode,
         "project_text": "",
         "deadline_days": 90.0,
         "iterations": min(settings.default_iterations, settings.max_iterations),
@@ -51,6 +69,10 @@ def _init_session_state() -> None:
         "seed": 7,
         "run_payload": None,
         "task_editor_df": pd.DataFrame(),
+        "task_feature_df": pd.DataFrame(),
+        "ml_predictions_df": pd.DataFrame(),
+        "ml_summary_df": pd.DataFrame(),
+        "model_status": {},
     }
 
     for key, value in defaults.items():
@@ -224,8 +246,47 @@ def _run_analysis(
     }
 
 
+def _run_ml_scoring(
+    tasks: list[dict[str, Any]],
+    feature_df: pd.DataFrame | None = None,
+) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, RiskModelStatus]:
+    model, status = _load_risk_model_bundle()
+    active_features = (
+        feature_df.copy()
+        if feature_df is not None and not feature_df.empty
+        else build_default_feature_df(tasks)
+    )
+
+    if model is None or not status.available:
+        return (
+            active_features,
+            pd.DataFrame(),
+            pd.DataFrame(columns=["Risk_Level", "Count"]),
+            status,
+        )
+
+    validated_df, scored_df, summary_df = score_tasks(model, active_features)
+    return validated_df, scored_df, summary_df, status
+
+
+def _analysis_only(payload: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "graph": payload["graph"],
+        "critical_path": payload["critical_path"],
+        "critical_path_days": payload["critical_path_days"],
+        "completion": payload["completion"],
+        "metrics": payload["metrics"],
+        "drivers": payload["drivers"],
+        "scenarios_df": payload["scenarios_df"],
+    }
+
+
 def _save_run(payload: dict[str, Any]) -> None:
     try:
+        model_status = payload.get("model_status", {})
+        ml_features_df = payload.get("ml_features_df")
+        ml_predictions_df = payload.get("ml_predictions_df")
+
         run_id = save_session_run(
             project_text=payload["project_text"],
             mode=payload["mode"],
@@ -241,6 +302,9 @@ def _save_run(payload: dict[str, Any]) -> None:
             metrics=payload["metrics"],
             completion_times=payload["completion"],
             scenarios_df=payload["scenarios_df"],
+            ml_features_df=ml_features_df if isinstance(ml_features_df, pd.DataFrame) else None,
+            ml_predictions_df=ml_predictions_df if isinstance(ml_predictions_df, pd.DataFrame) else None,
+            model_version=str(model_status.get("model_version", settings.risk_model_version)),
         )
         logger.info("saved_simulation_run run_id=%s", run_id)
     except Exception as exc:  # noqa: BLE001
@@ -257,6 +321,10 @@ def _set_run_payload(
     max_tasks: int,
     seed: int | None,
     analysis: dict[str, Any],
+    ml_features_df: pd.DataFrame,
+    ml_predictions_df: pd.DataFrame,
+    ml_summary_df: pd.DataFrame,
+    model_status: RiskModelStatus,
 ) -> None:
     st.session_state.run_payload = {
         "tasks": tasks,
@@ -266,9 +334,17 @@ def _set_run_payload(
         "iterations": iterations,
         "max_tasks": max_tasks,
         "seed": seed,
+        "ml_features_df": ml_features_df,
+        "ml_predictions_df": ml_predictions_df,
+        "ml_summary_df": ml_summary_df,
+        "model_status": asdict(model_status),
         **analysis,
     }
     st.session_state.task_editor_df = _tasks_to_editor_df(tasks)
+    st.session_state.task_feature_df = ml_features_df
+    st.session_state.ml_predictions_df = ml_predictions_df
+    st.session_state.ml_summary_df = ml_summary_df
+    st.session_state.model_status = asdict(model_status)
 
 
 _init_session_state()
@@ -282,7 +358,7 @@ except Exception as exc:  # noqa: BLE001
 st.markdown(
     """
     <div class="hero-wrap">
-      <div class="hero-title">ProjectSense AI</div>
+      <div class="hero-title">AI Powered Project Planning & Risk Forecasting App</div>
       <p class="hero-subtitle">
         AI-assisted project planning with workflow reasoning, Monte Carlo risk forecasting,
         and scenario decision support.
@@ -341,6 +417,8 @@ if run_button:
                     seed=int(st.session_state.seed),
                 )
 
+            ml_features_df, ml_predictions_df, ml_summary_df, model_status = _run_ml_scoring(tasks)
+
             _set_run_payload(
                 tasks=tasks,
                 project_text=project_text,
@@ -350,9 +428,15 @@ if run_button:
                 max_tasks=int(st.session_state.max_tasks),
                 seed=int(st.session_state.seed),
                 analysis=analysis,
+                ml_features_df=ml_features_df,
+                ml_predictions_df=ml_predictions_df,
+                ml_summary_df=ml_summary_df,
+                model_status=model_status,
             )
             _save_run(st.session_state.run_payload)
             st.success("Plan generated and simulation completed.")
+            if not model_status.available:
+                st.info(f"ML advisory scoring unavailable: {model_status.message}")
         except TaskGenerationError as exc:
             st.error(str(exc))
         except GraphValidationError as exc:
@@ -363,12 +447,13 @@ if run_button:
 
 payload = st.session_state.run_payload
 
-tab_exec, tab_plan, tab_workflow, tab_risk, tab_scenarios, tab_history = st.tabs(
+tab_exec, tab_plan, tab_workflow, tab_risk, tab_ml, tab_scenarios, tab_history = st.tabs(
     [
         "Executive Brief",
         "Task Plan",
         "Workflow",
         "Risk Dashboard",
+        "ML Risk Scoring",
         "Scenario Lab",
         "History & Export",
     ]
@@ -377,10 +462,17 @@ tab_exec, tab_plan, tab_workflow, tab_risk, tab_scenarios, tab_history = st.tabs
 if not payload:
     with tab_exec:
         st.info("Enter a project description and click Generate & Simulate to start.")
+    with tab_ml:
+        st.info("Generate one run to activate advisory ML risk scoring.")
 else:
     metrics = payload["metrics"]
     drivers = payload["drivers"]
     scenarios_df = payload["scenarios_df"]
+    ml_features_df = payload.get("ml_features_df", pd.DataFrame())
+    ml_predictions_df = payload.get("ml_predictions_df", pd.DataFrame())
+    ml_summary_df = payload.get("ml_summary_df", pd.DataFrame())
+    model_status = payload.get("model_status", {})
+
     top_driver = drivers[0]["task_name"] if drivers else None
     risk_level = _risk_level(metrics["delay_probability"])
 
@@ -401,6 +493,16 @@ else:
         st.caption(
             "Use the Scenario Lab to test mitigation options before committing the project schedule."
         )
+
+        if model_status.get("available", False):
+            st.caption(
+                f"ML advisory scoring active (model: {model_status.get('model_version', 'unknown')})."
+            )
+        else:
+            st.warning(
+                "ML advisory scoring is currently unavailable. "
+                f"Reason: {model_status.get('message', 'Unknown')}"
+            )
 
     with tab_plan:
         st.subheader("Editable Task Plan")
@@ -436,6 +538,9 @@ else:
                     iterations=int(st.session_state.iterations),
                     seed=int(st.session_state.seed),
                 )
+                ml_features_df, ml_predictions_df, ml_summary_df, model_status = _run_ml_scoring(
+                    edited_tasks
+                )
                 _set_run_payload(
                     tasks=edited_tasks,
                     project_text=payload["project_text"],
@@ -445,6 +550,10 @@ else:
                     max_tasks=int(st.session_state.max_tasks),
                     seed=int(st.session_state.seed),
                     analysis=analysis,
+                    ml_features_df=ml_features_df,
+                    ml_predictions_df=ml_predictions_df,
+                    ml_summary_df=ml_summary_df,
+                    model_status=model_status,
                 )
                 _save_run(st.session_state.run_payload)
                 st.success("Simulation refreshed with edited tasks.")
@@ -477,6 +586,87 @@ else:
         else:
             st.dataframe(drivers_df.head(10), use_container_width=True, hide_index=True)
             st.plotly_chart(risk_drivers_bar(drivers_df.head(10)), use_container_width=True)
+
+    with tab_ml:
+        st.subheader("ML Advisory Risk Scoring")
+        st.caption(
+            "Advisory signal only. Combine ML scores with Monte Carlo and scenario results "
+            "for final planning decisions."
+        )
+
+        if model_status:
+            st.write(
+                f"Model version: `{model_status.get('model_version', 'unknown')}` | "
+                f"Status: {model_status.get('message', 'unknown')}"
+            )
+
+        feature_editor = st.data_editor(
+            ml_features_df,
+            hide_index=True,
+            use_container_width=True,
+            key="ml_feature_editor",
+            column_config={
+                "Task_ID": st.column_config.TextColumn("Task ID", disabled=True),
+                "Task_Duration_Days": st.column_config.NumberColumn(
+                    "Task Duration (days)", min_value=1.0, step=1.0
+                ),
+                "Labor_Required": st.column_config.NumberColumn(
+                    "Labor Required", min_value=0, step=1
+                ),
+                "Equipment_Units": st.column_config.NumberColumn(
+                    "Equipment Units", min_value=0, step=1
+                ),
+                "Material_Cost_USD": st.column_config.NumberColumn(
+                    "Material Cost (USD)", min_value=0.0, step=100.0, format="%.2f"
+                ),
+                "Start_Constraint": st.column_config.NumberColumn(
+                    "Start Constraint", min_value=0.0, step=1.0
+                ),
+                "Resource_Constraint_Score": st.column_config.NumberColumn(
+                    "Resource Constraint Score", min_value=0.0, max_value=1.0, step=0.01
+                ),
+                "Site_Constraint_Score": st.column_config.NumberColumn(
+                    "Site Constraint Score", min_value=0.0, max_value=1.0, step=0.01
+                ),
+                "Dependency_Count": st.column_config.NumberColumn(
+                    "Dependency Count", min_value=0, step=1
+                ),
+            },
+        )
+
+        if st.button("Run Advisory ML Scoring", type="secondary"):
+            try:
+                updated_features, updated_predictions, updated_summary, updated_model_status = _run_ml_scoring(
+                    payload["tasks"],
+                    feature_df=feature_editor,
+                )
+                _set_run_payload(
+                    tasks=payload["tasks"],
+                    project_text=payload["project_text"],
+                    mode=payload["mode"],
+                    deadline_days=float(payload["deadline_days"]),
+                    iterations=int(payload["iterations"]),
+                    max_tasks=int(payload["max_tasks"]),
+                    seed=int(payload["seed"] or 0),
+                    analysis=_analysis_only(payload),
+                    ml_features_df=updated_features,
+                    ml_predictions_df=updated_predictions,
+                    ml_summary_df=updated_summary,
+                    model_status=updated_model_status,
+                )
+                _save_run(st.session_state.run_payload)
+                st.success("Advisory scoring updated.")
+                st.rerun()
+            except Exception as exc:  # noqa: BLE001
+                st.error(f"Cannot compute ML advisory scores: {exc}")
+
+        if ml_predictions_df.empty:
+            st.info("No advisory predictions available yet.")
+        else:
+            st.dataframe(ml_predictions_df, hide_index=True, use_container_width=True)
+            summary_df = ml_summary_df if not ml_summary_df.empty else summarize_predictions(ml_predictions_df)
+            if not summary_df.empty:
+                st.dataframe(summary_df, hide_index=True, use_container_width=True)
 
     with tab_scenarios:
         st.subheader("Scenario Decision Lab")
@@ -533,6 +723,30 @@ with tab_history:
                         iterations=int(details["iterations"]),
                         seed=details["seed"],
                     )
+
+                    current_model = _load_risk_model_bundle()[1]
+                    if details.get("ml_predictions"):
+                        ml_details = details["ml_predictions"]
+                        loaded_features_df = pd.DataFrame(ml_details.get("features", []))
+                        loaded_predictions_df = pd.DataFrame(ml_details.get("predictions", []))
+                        loaded_summary_df = summarize_predictions(loaded_predictions_df)
+                        loaded_model_status = RiskModelStatus(
+                            enabled=current_model.enabled,
+                            available=current_model.available,
+                            model_path=current_model.model_path,
+                            model_version=str(
+                                ml_details.get("model_version") or current_model.model_version
+                            ),
+                            message=current_model.message,
+                        )
+                    else:
+                        (
+                            loaded_features_df,
+                            loaded_predictions_df,
+                            loaded_summary_df,
+                            loaded_model_status,
+                        ) = _run_ml_scoring(details["tasks"])
+
                     _set_run_payload(
                         tasks=details["tasks"],
                         project_text=details["project_text"],
@@ -542,6 +756,10 @@ with tab_history:
                         max_tasks=int(details.get("params", {}).get("max_tasks", settings.max_tasks)),
                         seed=details["seed"],
                         analysis=analysis,
+                        ml_features_df=loaded_features_df,
+                        ml_predictions_df=loaded_predictions_df,
+                        ml_summary_df=loaded_summary_df,
+                        model_status=loaded_model_status,
                     )
                     st.session_state.project_text = details["project_text"]
                     st.session_state.mode = details["mode"]
@@ -558,6 +776,8 @@ with tab_history:
         tasks_df = pd.DataFrame(payload["tasks"])
         scenarios_df = payload["scenarios_df"].copy()
         drivers_df = pd.DataFrame(payload["drivers"])
+        ml_features_df = payload.get("ml_features_df", pd.DataFrame())
+        ml_predictions_df = payload.get("ml_predictions_df", pd.DataFrame())
 
         export_json = {
             "project_text": payload["project_text"],
@@ -570,6 +790,13 @@ with tab_history:
             "metrics": payload["metrics"],
             "drivers": payload["drivers"],
             "scenarios": scenarios_df.to_dict(orient="records"),
+            "ml_model_status": payload.get("model_status", {}),
+            "ml_features": ml_features_df.to_dict(orient="records")
+            if isinstance(ml_features_df, pd.DataFrame)
+            else [],
+            "ml_predictions": ml_predictions_df.to_dict(orient="records")
+            if isinstance(ml_predictions_df, pd.DataFrame)
+            else [],
         }
 
         st.download_button(
@@ -590,6 +817,23 @@ with tab_history:
             file_name="risk_drivers.csv",
             mime="text/csv",
         )
+
+        if isinstance(ml_features_df, pd.DataFrame) and not ml_features_df.empty:
+            st.download_button(
+                "Download ML Features CSV",
+                data=ml_features_df.to_csv(index=False).encode("utf-8"),
+                file_name="ml_features.csv",
+                mime="text/csv",
+            )
+
+        if isinstance(ml_predictions_df, pd.DataFrame) and not ml_predictions_df.empty:
+            st.download_button(
+                "Download ML Predictions CSV",
+                data=ml_predictions_df.to_csv(index=False).encode("utf-8"),
+                file_name="ml_predictions.csv",
+                mime="text/csv",
+            )
+
         st.download_button(
             "Download Full Run JSON",
             data=json.dumps(export_json, indent=2).encode("utf-8"),

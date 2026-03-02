@@ -65,9 +65,21 @@ def init_db(db_path: str | None = None) -> None:
             FOREIGN KEY (simulation_run_id) REFERENCES simulation_runs(id) ON DELETE CASCADE
         );
         """,
+        """
+        CREATE TABLE IF NOT EXISTS ml_predictions (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            simulation_run_id INTEGER NOT NULL,
+            model_version TEXT NOT NULL,
+            features_json TEXT NOT NULL,
+            predictions_json TEXT NOT NULL,
+            created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (simulation_run_id) REFERENCES simulation_runs(id) ON DELETE CASCADE
+        );
+        """,
         "CREATE INDEX IF NOT EXISTS idx_projects_created_at ON projects(created_at DESC);",
         "CREATE INDEX IF NOT EXISTS idx_sim_runs_project ON simulation_runs(project_id);",
         "CREATE INDEX IF NOT EXISTS idx_scenario_run_sim ON scenario_runs(simulation_run_id);",
+        "CREATE INDEX IF NOT EXISTS idx_ml_predictions_sim ON ml_predictions(simulation_run_id);",
     ]
 
     with get_connection(db_path) as connection:
