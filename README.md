@@ -25,7 +25,11 @@ A stakeholder-ready Streamlit application that generates project plans with Groq
 ## Repository Structure
 ```
 ai-powered-project-planning-risk-forecasting-app/
+├── .github/
+│   └── workflows/
+│       └── ci.yml
 ├── app.py
+├── PROJECT_WORKFLOW.md
 ├── requirements.txt
 ├── requirements-dev.txt
 ├── .env.example
@@ -43,7 +47,8 @@ ai-powered-project-planning-risk-forecasting-app/
 ├── presentation/
 │   ├── stakeholder-deck.md
 │   ├── demo-script.md
-│   └── backup-demo.md
+│   ├── backup-demo.md
+│   └── powerpoint-ready-deck.md
 └── src/
     ├── config.py
     ├── ai/
@@ -141,6 +146,22 @@ Use the materials in `presentation/`:
 - `stakeholder-deck.md` (10-slide narrative)
 - `demo-script.md` (5-7 minute live flow)
 - `backup-demo.md` (mock-mode contingency)
+- `powerpoint-ready-deck.md` (12-slide, PowerPoint-ready structure)
+- `post-presentation-qa-playbook.md` (rapid Q&A answer sheet)
+
+## Team Workflow Asset
+- `PROJECT_WORKFLOW.md` includes:
+  - 2-person 4-week execution plan
+  - scope discipline (only required topics)
+  - DoR / DoD
+  - ownership and readiness checklist
+
+## Internal Understanding Asset
+- `PROJECT_UNDERSTANDING_GUIDE.md`:
+  - end-to-end system explanation
+  - module-by-module ownership and logic map
+  - metrics/scenario interpretation
+  - troubleshooting and handover checklist
 
 ## Suggested Demo Projects
 - `Implement a CRM rollout across 3 teams`
