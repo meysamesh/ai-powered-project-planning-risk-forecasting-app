@@ -74,6 +74,29 @@ The platform enables project managers to **evaluate uncertainty, compare executi
 
 <br>
 
+## Deployment & Production Readiness
+
+certAIn is deployed through a complete end-to-end pipeline, demonstrating production readiness beyond experimentation:
+
+- Streamlit application (user-facing interface)
+- Docker containerization (reproducible local environment)
+- Render deployment (cloud hosting layer)
+- GCP configuration (cloud infrastructure and services)
+
+This pipeline ensures that the platform is not only analytically sound, but also operational and deployable.
+
+### Visual Validation
+
+![Streamlit UI](assets/01_streamlit_homepage.png)
+![Docker Runtime](assets/02_docker_running.png)
+![Render Deployment](assets/03_render_deployment.png)
+![Render Dashboard](assets/04_render_dashboard.png)
+![GCP Configuration](assets/05_GCP_product.png)
+
+---
+
+<br>
+
 ## Dataset Strategy
 
 The capstone uses **three bundled datasets** with different roles in the workflow:
