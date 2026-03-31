@@ -93,8 +93,6 @@ This pipeline ensures that the platform is not only analytically sound, but also
 
 ---
 
-<br>
-
 ## Dataset Strategy
 
 The capstone uses **three bundled datasets** with different roles in the workflow:
@@ -111,8 +109,6 @@ The capstone uses **three bundled datasets** with different roles in the workflo
 The three datasets support different parts of the capstone rather than one single end-to-end training table. They support the current demonstration workflow and bundled model artifacts, while the underlying platform remains extensible to additional domains and retrained models. The repository also includes `scripts/generate_capstone_datasets.py`, which can generate synthetic capstone-style datasets for local experimentation, but that utility script should not be treated as the provenance source for the checked-in `construction_dataset.csv`.
 
 ---
-
-<br>
 
 # Repository Structure
 
