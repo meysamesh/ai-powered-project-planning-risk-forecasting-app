@@ -72,8 +72,6 @@ The platform enables project managers to **evaluate uncertainty, compare executi
 
 ---
 
-<br>
-
 ## Deployment & Production Readiness
 
 certAIn is deployed through a complete end-to-end pipeline, demonstrating production readiness beyond experimentation:
